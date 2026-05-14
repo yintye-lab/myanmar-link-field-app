@@ -17,7 +17,8 @@
       "android": {
         "buildType": "apk",
         "image": "ubuntu-22.04-jdk-17-ndk-r26b",
-        "node": "20.18.3"
+        "node": "20.18.3",
+        "prebuildCommand": "corepack enable"
       },
       "channel": "preview"
     },
