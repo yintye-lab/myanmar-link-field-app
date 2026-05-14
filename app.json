@@ -1,0 +1,74 @@
+{
+  "expo": {
+    "name": "Myanmar Link Field",
+    "slug": "myanmar-link-field",
+    "version": "1.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0052CC"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.myanmarlink.field",
+      "buildNumber": "2"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0052CC"
+      },
+      "package": "com.myanmarlink.field",
+      "versionCode": 2,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/5bf927e9-4631-41b0-b905-9b343b7c6da9"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "apiUrl": "https://erp.myanmarlink.online/api",
+      "eas": {
+        "projectId": "5bf927e9-4631-41b0-b905-9b343b7c6da9"
+      }
+    },
+    "owner": "myanmarlink",
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Myanmar Link Field to access your location for GPS job verification."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Myanmar Link Field to take photos for job proof-of-work."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Myanmar Link Field to access photos for job reports."
+        }
+      ]
+    ]
+  }
+}
