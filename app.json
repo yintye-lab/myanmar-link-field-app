@@ -40,9 +40,7 @@
       "fallbackToCacheTimeout": 0,
       "url": "https://u.expo.dev/5bf927e9-4631-41b0-b905-9b343b7c6da9"
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.1.0",
     "extra": {
       "apiUrl": "https://erp.myanmarlink.online/api",
       "eas": {
