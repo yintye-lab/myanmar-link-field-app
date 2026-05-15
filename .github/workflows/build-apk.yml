@@ -1,0 +1,65 @@
+name: Build Expo APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+      
+      - name: Setup Expo CLI
+        run: npm install -g eas-cli
+      
+      - name: Build APK with EAS
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas build --platform android --profile preview --non-interactive --wait
+      
+      - name: Download APK
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          BUILD_ID=$(eas build:view --json | jq -r '.id' | head -1)
+          echo "Build ID: $BUILD_ID"
+          eas build:view $BUILD_ID --json > build-info.json
+          APK_URL=$(jq -r '.artifacts.buildUrl' build-info.json)
+          echo "APK URL: $APK_URL"
+          echo "APK_URL=$APK_URL" >> $GITHUB_ENV
+      
+      - name: Upload APK to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: myanmar-link-field-app-apk
+          path: build-info.json
+          retention-days: 30
+      
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
+          body: |
+            APK Build Completed
+            Build ID: ${{ env.BUILD_ID }}
+            APK URL: ${{ env.APK_URL }}
+          draft: false
+          prerelease: false
