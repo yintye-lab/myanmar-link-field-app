@@ -1,4 +1,4 @@
-name: Build Expo APK
+name: Build Expo APK + OTA Update
 
 on:
   push:
@@ -36,15 +36,16 @@ jobs:
         run: |
           npm install --legacy-peer-deps
 
-      - name: Install Expo CLI
+      - name: Install Expo CLI & EAS CLI
         run: |
-          npm install -g expo-cli @expo/cli
+          npm install -g expo-cli @expo/cli eas-cli
 
       - name: Run Expo Prebuild (generate android folder)
         run: |
           npx expo prebuild --platform android --clean --no-install
         env:
           EXPO_NO_TELEMETRY: 1
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
@@ -71,10 +72,17 @@ jobs:
           path: ${{ env.APK_PATH }}
           retention-days: 30
 
+      - name: Publish OTA Update via EAS Update
+        run: |
+          eas update --channel production --message "Auto OTA: ${{ github.event.head_commit.message }}" --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
       - name: Build Summary
         run: |
           echo "============================================"
-          echo "BUILD SUCCESSFUL!"
+          echo "BUILD + OTA UPDATE SUCCESSFUL!"
           echo "APK: ${{ env.APK_PATH }}"
-          echo "Download the APK from GitHub Actions Artifacts"
+          echo "OTA Update published to 'production' channel"
+          echo "Existing installs will auto-update on next launch"
           echo "============================================"
