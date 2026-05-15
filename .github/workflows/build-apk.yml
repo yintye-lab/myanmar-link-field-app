@@ -13,10 +13,10 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
@@ -24,42 +24,42 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
       
-      - name: Setup Expo CLI
+      - name: Setup EAS CLI
         run: npm install -g eas-cli
       
       - name: Build APK with EAS
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas build --platform android --profile preview --non-interactive --wait
-      
-      - name: Download APK
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          BUILD_ID=$(eas build:view --json | jq -r '.id' | head -1)
-          echo "Build ID: $BUILD_ID"
-          eas build:view $BUILD_ID --json > build-info.json
-          APK_URL=$(jq -r '.artifacts.buildUrl' build-info.json)
-          echo "APK URL: $APK_URL"
+          eas build --platform android --profile preview --non-interactive --wait 2>&1 | tee build-output.txt
+          APK_URL=$(grep -oP 'https://expo\.dev/artifacts/eas/[^\s]+\.apk' build-output.txt | head -1)
+          if [ -z "$APK_URL" ]; then
+            APK_URL=$(grep -oP 'https://[^\s]+\.apk' build-output.txt | head -1)
+          fi
           echo "APK_URL=$APK_URL" >> $GITHUB_ENV
+          echo "APK URL: $APK_URL"
+          cat build-output.txt | tail -30
       
-      - name: Upload APK to artifacts
-        uses: actions/upload-artifact@v3
+      - name: Upload build output log
+        uses: actions/upload-artifact@v4
         with:
-          name: myanmar-link-field-app-apk
-          path: build-info.json
-          retention-days: 30
+          name: build-output-log
+          path: build-output.txt
+          retention-days: 7
       
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release with APK URL
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.run_number }}
-          release_name: Release v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
           body: |
-            APK Build Completed
-            Build ID: ${{ env.BUILD_ID }}
-            APK URL: ${{ env.APK_URL }}
+            ## Myanmar Link Field App - APK Build
+
+            **APK Download URL:** ${{ env.APK_URL }}
+
+            > Click the APK URL above to download the Android APK file.
+            > The URL is valid for 30 days from the build date.
           draft: false
           prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
