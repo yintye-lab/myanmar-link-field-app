@@ -7,6 +7,9 @@ on:
       - master
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -31,35 +34,36 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
+          echo "Starting EAS Build..."
           eas build --platform android --profile preview --non-interactive --wait 2>&1 | tee build-output.txt
-          APK_URL=$(grep -oP 'https://expo\.dev/artifacts/eas/[^\s]+\.apk' build-output.txt | head -1)
+          echo "=== Build Output ==="
+          cat build-output.txt | tail -50
+          APK_URL=$(grep -oP 'https://[^\s]+\.apk' build-output.txt | head -1)
           if [ -z "$APK_URL" ]; then
-            APK_URL=$(grep -oP 'https://[^\s]+\.apk' build-output.txt | head -1)
+            APK_URL=$(grep -oP 'https://expo\.dev/artifacts/eas/[^\s]+' build-output.txt | head -1)
           fi
+          if [ -z "$APK_URL" ]; then
+            APK_URL=$(grep -oP 'https://[^\s]+(artifact|download)[^\s]*' build-output.txt | head -1)
+          fi
+          echo ""
+          echo "============================================"
+          echo "APK DOWNLOAD URL: $APK_URL"
+          echo "============================================"
           echo "APK_URL=$APK_URL" >> $GITHUB_ENV
-          echo "APK URL: $APK_URL"
-          cat build-output.txt | tail -30
+          echo "APK_URL=$APK_URL" >> $GITHUB_OUTPUT
       
-      - name: Upload build output log
+      - name: Save APK URL to file
+        run: |
+          echo "APK Download URL: ${{ env.APK_URL }}" > apk-download-url.txt
+          echo "" >> apk-download-url.txt
+          echo "Build completed at: $(date)" >> apk-download-url.txt
+          cat apk-download-url.txt
+      
+      - name: Upload APK URL info
         uses: actions/upload-artifact@v4
         with:
-          name: build-output-log
-          path: build-output.txt
-          retention-days: 7
-      
-      - name: Create Release with APK URL
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ github.run_number }}
-          name: Release v${{ github.run_number }}
-          body: |
-            ## Myanmar Link Field App - APK Build
-
-            **APK Download URL:** ${{ env.APK_URL }}
-
-            > Click the APK URL above to download the Android APK file.
-            > The URL is valid for 30 days from the build date.
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: apk-download-info
+          path: |
+            apk-download-url.txt
+            build-output.txt
+          retention-days: 30
