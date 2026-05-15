@@ -13,57 +13,68 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-      
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
-      
-      - name: Setup EAS CLI
-        run: npm install -g eas-cli
-      
-      - name: Build APK with EAS
+        run: |
+          npm install --legacy-peer-deps
+
+      - name: Install Expo CLI
+        run: |
+          npm install -g expo-cli @expo/cli
+
+      - name: Run Expo Prebuild (generate android folder)
+        run: |
+          npx expo prebuild --platform android --clean --no-install
         env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_NO_TELEMETRY: 1
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build Android APK (Release)
         run: |
-          echo "Starting EAS Build..."
-          eas build --platform android --profile preview --non-interactive --wait 2>&1 | tee build-output.txt
-          echo "=== Build Output ==="
-          cat build-output.txt | tail -50
-          APK_URL=$(grep -oP 'https://[^\s]+\.apk' build-output.txt | head -1)
-          if [ -z "$APK_URL" ]; then
-            APK_URL=$(grep -oP 'https://expo\.dev/artifacts/eas/[^\s]+' build-output.txt | head -1)
-          fi
-          if [ -z "$APK_URL" ]; then
-            APK_URL=$(grep -oP 'https://[^\s]+(artifact|download)[^\s]*' build-output.txt | head -1)
-          fi
-          echo ""
-          echo "============================================"
-          echo "APK DOWNLOAD URL: $APK_URL"
-          echo "============================================"
-          echo "APK_URL=$APK_URL" >> $GITHUB_ENV
-          echo "APK_URL=$APK_URL" >> $GITHUB_OUTPUT
-      
-      - name: Save APK URL to file
+          cd android
+          ./gradlew assembleRelease --no-daemon -x lint
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx4096m"
+
+      - name: Find APK file
         run: |
-          echo "APK Download URL: ${{ env.APK_URL }}" > apk-download-url.txt
-          echo "" >> apk-download-url.txt
-          echo "Build completed at: $(date)" >> apk-download-url.txt
-          cat apk-download-url.txt
-      
-      - name: Upload APK URL info
+          echo "=== Looking for APK files ==="
+          find android -name "*.apk" -type f
+          APK_PATH=$(find android -name "*.apk" -type f | head -1)
+          echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
+          echo "Found APK: $APK_PATH"
+
+      - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: apk-download-info
-          path: |
-            apk-download-url.txt
-            build-output.txt
+          name: myanmar-link-field-app-release
+          path: ${{ env.APK_PATH }}
           retention-days: 30
+
+      - name: Build Summary
+        run: |
+          echo "============================================"
+          echo "BUILD SUCCESSFUL!"
+          echo "APK: ${{ env.APK_PATH }}"
+          echo "Download the APK from GitHub Actions Artifacts"
+          echo "============================================"
